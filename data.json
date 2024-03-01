@@ -1,0 +1,40 @@
+
+{
+    "Shop": [
+        {
+            "ItemName": "potion",
+            "Type": "consumable",
+            "PeakSeason": "Winter",
+            "CostToMake": 3,
+            "BaseCost": 10,
+            "CurrentCost": 10,
+            "Quality": "Good",
+            "Subcomponents": [
+                "Bottle",
+                "Liquid"
+            ]
+        },
+        {
+            "ItemName": "sword",
+            "Type": "fixed",
+            "PeakSeason": "Summer",
+            "CostToMake": 15,
+            "BaseCost": 30,
+            "CurrentCost": 30,
+            "Quality": "Excellent",
+            "Subcomponents": [
+                "iron",
+                "wood"
+            ]
+        }
+    ],
+    "PlayerState": {
+        "Health": 20,
+        "NumberOfDeaths": 1782432,
+        "Inventory": {
+            "potion": 5,
+            "sword": 1
+        },
+        "Season": "Summer"
+    }
+}
