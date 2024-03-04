@@ -1,40 +1,36 @@
 
 {
-    "Shop": [
-        {
-            "ItemName": "potion",
-            "Type": "consumable",
-            "PeakSeason": "Winter",
-            "CostToMake": 3,
-            "BaseCost": 10,
-            "CurrentCost": 10,
-            "Quality": "Good",
-            "Subcomponents": [
-                "Bottle",
-                "Liquid"
-            ]
+    "Produce": {
+        "Grain": 1,
+        "Cotton": 1,
+        "Metal": 1  
+    },
+    
+    "Land_Allocation": {
+        "Grain_Crop": 0.33,
+        "Cotton_Crop": 0.33,
+        "Metal_Mining": 0.34
+    },
+
+    "Production": {
+        "wheat": {
+            "efficiency": 1,
+            "price": 5,
+            "demand": 70
         },
-        {
-            "ItemName": "sword",
-            "Type": "fixed",
-            "PeakSeason": "Summer",
-            "CostToMake": 15,
-            "BaseCost": 30,
-            "CurrentCost": 30,
-            "Quality": "Excellent",
-            "Subcomponents": [
-                "iron",
-                "wood"
-            ]
+        "cloth": {
+            "efficiency": 1,
+            "price": 10,
+            "demand": 50
+        },
+        "tool": {
+            "efficiency": 1,
+            "price": 15,
+            "demand": 20
         }
-    ],
-    "PlayerState": {
-        "Health": 20,
-        "NumberOfDeaths": 1782432,
-        "Inventory": {
-            "potion": 5,
-            "sword": 1
-        },
-        "Season": "Summer"
     }
 }
+
+
+
+
