@@ -1,4 +1,5 @@
 
+
 {
     "Genome": {
         "Produce": {
@@ -37,18 +38,25 @@
         "population": 100,
         "land_amount": 10, 
         "_comment" : "1 land amount = 100 population",
-        "budget": {
+        "budget": 30,
+        "needs": {
             "wheat":{
-                "budget": 5,
-                "need": 5
+                "need": 5,
+                "utility": 6,
+                "downWeighting": 1,
+                "upWeighting": 3
             },
             "cloth":{
-                "budget": 10,
-                "need": 2
-            } ,
+                "need": 2,
+                "utility": 3,
+                "downWeighting": 2,
+                "upWeighting": 1
+            },
             "tool": {
-                "budget": 15,
-                "need": 1
+                "need": 1,
+                "utility": 1,
+                "downWeighting": 1,
+                "upWeighting": 1
             }
         }
     }

@@ -10,21 +10,15 @@ def load_item_data(filename):
     return data
 
 data = load_item_data("data.json")
-
-
-
-
 genome_data = data["Genome"]
-
-
 produce_data = genome_data["Produce"]
 land_data = genome_data["Land_Allocation"]
 production_data = genome_data["Production"]
-
 initial_data = data["initial"]
 population = initial_data["population"]
 land_size = initial_data["land_amount"]
 budget_data = initial_data["budget"]
+needs_data = initial_data["needs"]
 
 
 
@@ -54,41 +48,18 @@ def randomize_land(land):
         newLand[land_use] = randomNumbers[i]
         
 
-    print("TOTAL LAND ALOCATED", sum(randomNumbers))
+    # print("TOTAL LAND ALOCATED", sum(randomNumbers))
     
     return newLand
 
 
-
-# #Genomes
-# #We need to create genomes for the key factors that influence the price changes
-# # for ex, season, player health, player inventory, player deaths...
-# #genome entire shop or individual items
-# def create_genome(item): #item is data
-#     genome = {}
-#     genome["Land_Allocation"] = item["Land_Allocation"]
-#     # randomize values
-#     return genome
-
-# genomes = [create_genome(item) for item in land_data]
-
-# for genome in genomes:
-#     print(genome)
-# a genome is the entire economy i.e. all the items and their pricings
-# one economy is bred with another economy and creates a new one
-
-
-#randomize item helper function
-    
-#randomize shop helper function
-
-
+#can manipulate the wants of each person in the genome(their utility)
 def create_genome(land): #item is data
     genome = {}
     genome = copy.deepcopy(land)
     # randomize some items for later mutations using helper functions
     newGenome = randomize_land(genome)
-    print("random: ", genome)
+    print("random: ", newGenome)
     return newGenome
 
 
@@ -96,7 +67,7 @@ def create_genome(land): #item is data
 # You can’t arbitrarily increase the quantity of arable land without losing something else. 
 # - Free to make it about land, minerals, crops, weather 
 
-
+#this should be which things I should make i.e. 2 things of cotton with 1 unit of land, or I can make 3 units of food with the same unit
 def basic_production(land, produce, production, size):
     # For each land allocation, multiply the allocation by the size and then multiply
     # the produce of that land allocation by its produce value
@@ -113,37 +84,46 @@ def basic_production(land, produce, production, size):
 
     return produce_dict
 
-
-def basic_consumption(budget_data, producedGoods, marketPrice, population_size):
+#
+def basic_consumption(budget_data, producedGoods, marketPrice, population_size, needs_data):
     #we have a budget, price, and a need
-    consumption_list = []
+    consumption_dict = {"wheat": 0, "cloth": 0, "tool": 0}
     
     budget_keys = ["wheat", "cloth", "tool"]
 
-    for product in budget_keys:
-        budget = budget_data[product]["budget"]
-        need =  budget_data[product]["need"]
-        good = producedGoods[product]
-        price = marketPrice[product]["price"]
+   
+    budget = budget_data
+
+    while budget > 0:
+        largest_utility = 0
+        largest_product = ''
+        for product in budget_keys:
+            if largest_utility < needs_data[product]["utility"]:
+                largest_utility = needs_data[product]["utility"]
+                largest_product = product
         
-
-        # budget/price = amount needed to change
-        #max_consumption_budget = budget/price
-        min_consumption = need * population_size
-        min_budget = min_consumption * budget 
-        goods_total_cost = good * price         
-
-        #negative number, not enough
-        #positive number, too much
-        #want this to be 0,0,0
-        #everyone has everything, the right amount
-        consumption_list.append(goods_total_cost - min_budget)
+        # updating budget and utilites
+        budget -= marketPrice[largest_product]['price'] # this will prob end up as a negative
+    
+        consumption_dict[largest_product] += 1
         
-        #we get the cost of the product produced and multiply it by the marketprice and compare those
+        for product in needs_data:
+            if product == largest_product:
+                needs_data[product]["utility"] -= needs_data[product]["downWeighting"]
+            else:
+                needs_data[product]["utility"] += needs_data[product]["upWeighting"]
 
-    #max_consumption_budget = budget/price
-    return consumption_list
-# use production and demand to help find the price
+
+    for item in consumption_dict:
+        consumption_dict[item] *= population_size
+        producedGoods[item] -= consumption_dict[item]
+
+        # budget = purchase(largest_product, budget, consumption_dict, marketPrice)
+            
+
+    return producedGoods
+
+
 
 def adjust_price_based_on_supply_demand(production_data, produce_dict):
     """
@@ -179,20 +159,16 @@ def adjust_price_based_on_supply_demand(production_data, produce_dict):
 
     return updated_production_data
 
+def breed_parents(genome1, genome2):
+    parent1 = copy.deepcopy(genome1)
+    parent2 = copy.deepcopy(genome2)
 
+    child = copy.deepcopy(genome1)
 
-# def YourAverageJoe():
-#     def demand():
-#         pass
-#     def consume():
-#         pass
-#     def doesBuy():
-#         pass
+    for key in parent1["Land_Allocation"]:
+        child["Land_Allocation"][key] = (parent1["Land_Allocation"][key] * parent2["Land_Allocation"][key]) / 2
 
-
-
-
-
+    return child
 
 # Phenome
 
@@ -200,33 +176,47 @@ def adjust_price_based_on_supply_demand(production_data, produce_dict):
 # Quantity here == amount both produced and consumed.
 # The phenome uses the produce_list
 
-def create_phenome(produce_list, production_data):
-    pass
+def fitness(genome):
+    return 1
 
 
+def run_function(genome):
+    
 
-def calculate_demands():
-    pass
+    # print(genome)
+    # print(basic_production(genome, produce_data, production_data, land_size))
+    producedGoods = basic_production(genome, produce_data, production_data, land_size)
+    # print("produceGoods: ", producedGoods) #value
 
-
-
-#########################################################################################
+    newPrices = adjust_price_based_on_supply_demand(production_data, producedGoods)
+    # print("New Prices", newPrices)
+    consumption = basic_consumption(budget_data, producedGoods, newPrices, population, needs_data)
+    # print("consumption", consumption)
+    
+    # use this data to compare to the fitness
+    return consumption
+###################################################################################################
 if __name__ == "__main__":
-    full_genomes = [create_genome(land_data)]
-
-    for genome in full_genomes:
-        print(genome)
-        print(basic_production(genome, produce_data, production_data, land_size))
-        producedGoods = basic_production(genome, produce_data, production_data, land_size)
-
-        print("produceGoods: ", producedGoods) #value
+    genomes = {}
+    numOfParents = 6
+    generations = 5
+    
+    for i in range(numOfParents):
+        genome = create_genome(land_data)
+        genome_consumption = run_function(genome)
+        score = fitness(genome_consumption)
+        genomes[i] = ([genome, score])
+        #run_function(genomes[i][genome])
+        #run (for scores)
         
-        newPrices = adjust_price_based_on_supply_demand(production_data, producedGoods)
-        print("New Prices", newPrices)
+    # for i in generations:
+        # for i in half of genomes:
+        #     breed 2 of the parents # returns child
+        
+        # run # checks the children
+        # check 
+        # cull
 
-        consumption = basic_consumption(budget_data, producedGoods, newPrices, population)
-        print("consumption", consumption)
-        # genpome["Production"]["price"] = ^^^^
 
 
 
