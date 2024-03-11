@@ -59,7 +59,6 @@ def create_genome(land): #item is data
     genome = copy.deepcopy(land)
     # randomize some items for later mutations using helper functions
     newGenome = randomize_land(genome)
-    print("random: ", newGenome)
     return newGenome
 
 
@@ -165,19 +164,71 @@ def breed_parents(genome1, genome2):
 
     child = copy.deepcopy(genome1)
 
-    for key in parent1["Land_Allocation"]:
-        child["Land_Allocation"][key] = (parent1["Land_Allocation"][key] * parent2["Land_Allocation"][key]) / 2
+    for key in parent1:
+        child[key] = (parent1[key] * parent2[key]) / 2
 
     return child
 
-# Phenome
 
-# The phenome is a list of {good, quantity, price} tuples for all goods in the economy. 
-# Quantity here == amount both produced and consumed.
-# The phenome uses the produce_list
+def mutation(genome):
+    #get a high or low randomly
+    #based on this, a high would add percentage to a random land allocation
+    #redefine the other two land allocations to be less than 1
+    randomMutate = random.randint(0, 100)
+    
+    if randomMutate >= 0:
+        land_uses = ["Grain_Crop", "Cotton_Crop", "Metal_Mining"]
+            
+        
+        # Shuffle the list to randomize which land use gets which number
+        random.shuffle(land_uses)
+        print(land_uses[0])
+        amount = random.uniform(-genome[land_uses[0]], genome[land_uses[0]])
+        genome[land_uses[0]] += amount
+        print("initial amount: ", amount)
+        
+        for i in range(1, len(land_uses)):
+            randNum = random.uniform(0, amount)
+            genome[land_uses[i]] -= randNum
+            amount -= abs(randNum)
+            print("new amount:", amount)
 
-def fitness(genome):
-    return 1
+        if sum((genome.values())) > 1:
+            difference = sum(genome.values()) - 1
+            genome[land_uses[0]] -= difference
+
+        print("Sum:", sum(genome.values()))
+    return genome
+
+    
+
+
+
+def fitness(con_genome):
+    #how do we want to calculate the score?
+    #check the numbers for each key in disctionary.
+    
+    #positive production
+    #efficiency
+    #type of economy score
+    
+    totalScore = 0
+    positiveProductionScore = 0
+    efficiencyScore =0
+    positive_production=0.3
+    efficiency=0.6
+    
+    
+    #posivie production:
+    for key in con_genome:
+        if con_genome[key] == 0:
+            positiveProductionScore += 100
+            efficiencyScore += 100
+        else:
+            positiveProductionScore += con_genome[key] *  0.1 #might need to be tweaked
+        efficiencyScore += max(0, 100 - abs(con_genome[key]))
+    totalScore = (positiveProductionScore * positive_production) + (efficiencyScore * efficiency)
+    return totalScore
 
 
 def run_function(genome):
@@ -203,19 +254,58 @@ if __name__ == "__main__":
     
     for i in range(numOfParents):
         genome = create_genome(land_data)
+        #print("genome:", genome)
+        #print("old sum:", sum(genome.values()))
+        genome = mutation(genome)
+        #print("mutated:" , genome)
         genome_consumption = run_function(genome)
+        #print("consumption: ", genome_consumption)
         score = fitness(genome_consumption)
+        print("score: ", score)
         genomes[i] = ([genome, score])
+        #print(genomes[i])
         #run_function(genomes[i][genome])
         #run (for scores)
-        
-    # for i in generations:
-        # for i in half of genomes:
-        #     breed 2 of the parents # returns child
-        
-        # run # checks the children
-        # check 
-        # cull
+    print(genomes)
+    #out of the parents, sort them and chose the best 2. Once we have lots of parents, sort in groups?
+    # sorted_genomes = sorted(genomes.items(), key=lambda item: item[1]['score'], reverse=True)
+    sorted_genomes = sorted(genomes.items(), key=lambda item: item[1][1], reverse=True)
+    print("sorted genomes:",sorted_genomes)
+    
+    for i in range(generations):
+        for j in range(0, len(sorted_genomes), 2):
+            print("J:", j)
+            print(sorted_genomes[j][1][0])
+            child = breed_parents(sorted_genomes[j][1][0],sorted_genomes[j+1][1][0])
+            child_genome = run_function(child)
+            child_score = fitness(child_genome)
+            # UPDATE THIS SH*T it be same for both parent and child, or child is always lower
+            #check child and lower parent, and double check why the child is lower score
+            
+            print("Parent", genomes[j+1][1], "CHILD:", child_score)
+            minScore = min(genomes[j+1][1],child_score)
+            if(minScore == child_score):
+                print("CHUILD MURDERER")
+                continue
+            else:
+                print("Get Rekt Parent")
+                genomes[j+1] = ([child_genome, child_score])
+            
+
+    #     breed_parents()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
