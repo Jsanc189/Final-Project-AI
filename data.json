@@ -38,11 +38,11 @@
         "population": 100,
         "land_amount": 10, 
         "_comment" : "1 land amount = 100 population",
-        "budget": 30,
+        "budget": 70,
         "needs": {
             "wheat":{
                 "need": 5,
-                "utility": 6,
+                "utility": 8,
                 "downWeighting": 1,
                 "upWeighting": 3
             },
@@ -50,12 +50,12 @@
                 "need": 2,
                 "utility": 3,
                 "downWeighting": 2,
-                "upWeighting": 1
+                "upWeighting": 2
             },
             "tool": {
                 "need": 1,
                 "utility": 1,
-                "downWeighting": 1,
+                "downWeighting": 3,
                 "upWeighting": 1
             }
         }
