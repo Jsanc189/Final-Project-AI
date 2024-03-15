@@ -90,41 +90,40 @@ def basic_production(land, produce, production, size):
 
     return produce_dict
 
-#
+
 def basic_consumption(budget_data, producedGoods, marketPrice, population_size, needs_data):
     #we have a budget, price, and a need
+    #marginal utility
     consumption_dict = {"wheat": 0, "cloth": 0, "tool": 0}
     
     budget_keys = ["wheat", "cloth", "tool"]
     count = 0
-   
+    utility_data = copy.deepcopy(needs_data)
     budget = budget_data
-
-    while budget > 0 and count < 3:
+    while budget > 0 and count < 10:
         largest_utility = 0
         largest_product = ''
         for product in budget_keys:
-            if largest_utility < needs_data[product]["utility"]:
-                    largest_utility = needs_data[product]["utility"]
+            if largest_utility < utility_data[product]["utility"]:
+                    largest_utility = utility_data[product]["utility"]
                     largest_product = product
-            else:
-                count += 1
+        count += 1
         # updating budget and utilites
         
     
-        if(consumption_dict[product] * 100 <= producedGoods[product]):
-            print("CAN BUY", )
+        if(consumption_dict[largest_product] * 100 <= producedGoods[largest_product] and budget - marketPrice[largest_product]['price'] >=0):
+            # print("CAN BUY", )
             consumption_dict[largest_product] += 1
             budget -= marketPrice[largest_product]['price'] # this will prob end up as a negative
             count = 0
         
-        for product in needs_data:
+        for product in utility_data:
             if product == largest_product:
-                needs_data[product]["utility"] -= needs_data[product]["downWeighting"]
+                utility_data[product]["utility"] -= utility_data[product]["downWeighting"]
             else:
-                needs_data[product]["utility"] += needs_data[product]["upWeighting"]
+                utility_data[product]["utility"] += utility_data[product]["upWeighting"]
         
-    print(consumption_dict)
+    print("consumption: ", consumption_dict)
     for item in consumption_dict:
         consumption_dict[item] *= population_size
         producedGoods[item] -= consumption_dict[item]
@@ -167,7 +166,7 @@ def adjust_price_based_on_supply_demand(production_data, produce_dict):
             updated_price = details['price'] * price_adjustment_factor
             # Update the product's price in the production data
             updated_production_data[product]['price'] = updated_price
-            print("new Prices:", updated_price)
+            #print("new Prices:", updated_price)
     return updated_production_data
 
 def breed_parents(genome1, genome2):
@@ -176,10 +175,12 @@ def breed_parents(genome1, genome2):
 
     child = copy.deepcopy(genome1)
     for key in parent1:
-        child[key] = (parent1[key] + parent2[key]) / 2
-
+        if key == 'Grain_Crop':
+            child[key] = parent1[key]
+        else:
+            child[key] = parent2[key]
+    child = normalize(child)
     child = mutation(child)
-
     return child
 
 
@@ -195,31 +196,33 @@ def mutation(genome):
         # Shuffle the list to randomize which land use gets which number
         random.shuffle(land_uses)
         #print(land_uses[0])
-        amount = random.uniform(-genome[land_uses[0]], genome[land_uses[0]])
-        if amount + genome[land_uses[0]]>= 1:
-            return genome
-        genome[land_uses[0]] += amount
+
+        for i in range(len(land_uses)):
+            amount = random.uniform(-genome[land_uses[i]], genome[land_uses[i]])
+            genome[land_uses[i]] += amount
         #print("initial amount: ", amount)
         
-        for i in range(1, len(land_uses)):
-            randNum = random.uniform(0, amount)
-            genome[land_uses[i]] -= randNum
-            amount -= abs(randNum)
-            #print("new amount:", amount)
-
-
-        if sum((genome.values())) > 1:
-            difference = sum(genome.values()) - 1
-            max_land_use = max(genome, key=genome.get)
-            genome[max_land_use] -= difference
+        genome = normalize(genome)
 
         #print("Sum:", sum(genome.values()))
     return genome
 
     
+def normalize(genome):
+    land_sum = sum(genome.values())
+    
+    if land_sum > 1:
+        # Normalize the land allocations using Min-Max scaling
+        for key in genome:
+            # Normalize each value in the genome
+            genome[key] = genome[key] / land_sum
+            #genome[key] = (genome[key] - min(genome.values())) / (max(genome.values()) - min(genome.values()))
 
-
-
+    print("GENOME:", genome)
+    return genome
+        
+    
+ 
 def fitness(con_genome):
     #how do we want to calculate the score?
     #check the numbers for each key in disctionary.
@@ -229,27 +232,41 @@ def fitness(con_genome):
     #type of economy score
     
     totalScore = 0
-    positiveProductionScore = 0
-    efficiencyScore = 0
-    positive_production=0.3
-    efficiency=0.6
-    
+    wheat_score = 0
+    cloth_score = 0
+    tool_score = 0
+    positive_weight= 0.8
+    efficiency_weight=0.2
+    wheat_efficiency = starting_utilities['wheat'] # 8
+    cloth_efficiency = starting_utilities['cloth'] # 3
+    tool_efficiency = starting_utilities['tool']   # 1
+    # excess production over needs
+    # excess consumption over needs
+    #
+
     
     #posivie production:
     for key in con_genome:
-        if con_genome[key] == 0:
-            positiveProductionScore += 100
-            efficiencyScore += 100
-        else:
-            positiveProductionScore += con_genome[key] * starting_utilities[key] #might need to be tweaked
-            efficiencyScore += max(neg_inf, 100 - abs(con_genome[key])) 
+        # This was one 'for' loop but then prof comlained
+        if key == "wheat":
+            wheat_score += con_genome[key] * wheat_efficiency * positive_weight
+            wheat_score +=  max(0, 100 - abs(con_genome[key])) * wheat_efficiency * efficiency_weight
+        elif key == "cloth":
+            print("Checking first cloth score", con_genome[key]  * cloth_efficiency * positive_weight)
+            cloth_score += con_genome[key]  * cloth_efficiency * positive_weight
+            print("checking cloth efficiency", max(0, 100 - abs(con_genome[key]))   * cloth_efficiency * efficiency_weight)
+            cloth_score +=  max(0, 100 - abs(con_genome[key]))   * cloth_efficiency * efficiency_weight
+        elif key == "tool":
+            tool_score += con_genome[key]  * tool_efficiency * positive_weight
+            tool_score +=  max(0, 100 - abs(con_genome[key])) * tool_efficiency * efficiency_weight
+        #efficiencyScore += max(0, 100 - abs(con_genome[key])) * f'{key}_efficiency'
 
-
-
+    print("wheat_score: ", wheat_score, "cloth_score: ", cloth_score, "tool_score: ", tool_score)
+    totalScore = int((wheat_score + cloth_score + tool_score))
     # print("score gotten from production:", positiveProductionScore * positive_production)
     # print("score gotten from effeciency", (efficiencyScore * efficiency))
-    totalScore = (positiveProductionScore * positive_production) + (efficiencyScore * efficiency)
-    print(totalScore)
+    #totalScore = (positiveProductionScore * positive_production)
+    print("Score:",  totalScore)
     return totalScore
 
 
@@ -271,8 +288,8 @@ def run_function(genome):
 ###################################################################################################
 if __name__ == "__main__":
     genomes = {}
-    numOfParents = 10
-    generations = 10
+    numOfParents = 20
+    generations = 15
     
     for i in range(numOfParents):
         genome = create_genome(land_data)
@@ -324,21 +341,12 @@ if __name__ == "__main__":
 
 
 
+# land not used falor (allows for everything to add to 1)
+    # crossover for parents take one category from parent A and the the other 2 categories
+    # from parent 2 and then normalize the them in the child
 
+    # normalize the mutation function 
+    # another normalization softmax function
+    # add base biased to make thing positive then normalize
 
-
-
-
-
-
-
-
-
-
-
-
-
-#given a set area of land, our goal is to produce materials.
-#If we over produce a material, the program should notice and adjust, until we get a perfect distribution. (Based of starting Demands that we set?)
-#Adjust the amount of land we allocate for each material, adjust the price, that's  of the good so supply = demand
-#supply is perfect to demand
+# 
