@@ -9,7 +9,7 @@ def load_item_data(filename):
     with open(filename, "r") as file:
         data = json.load(file)
     return data
-
+#globals variables
 neg_inf = float("-inf")
 data = load_item_data("data.json")
 genome_data = data["Genome"]
@@ -33,31 +33,40 @@ print("Produce: ", produce_data)
 print("land:", land_data)
 print("production:", production_data)
 
+
 def randomize_land(land):
-    #I want to change the value for one of the "crops" to a random value 0 < x < 1
-    #then I want to set the second crop to a random value from 0 < y < x
-    #then the last value is a random value from 0 < z < y
-    # Meant to satisfy the constraint that all land a 
+    """
+    Function: randomize_land
+
+    Description:
+    This function takes a 'land' object as input and randomizes the allocation of resources across different land uses.
+    It uses deepcopy to create a new copy of the 'land' object to avoid modifying the original data.
+    Random numbers are generated within specified ranges to determine the allocation percentages for each land use.
+    The total allocation is ensured to add up to 1 by adjusting the remaining allocation after each random number generation.
+    The 'land_uses' list is shuffled to introduce randomness in the allocation process.
+    The function returns a new 'newLand' object with randomized allocations, leaving the original 'land' object unchanged.
+
+    Parameters:
+    - land: The original land object with initial allocation percentages for different land uses.
+
+    Returns:
+    - newLand: A new land object with randomized allocation percentages for different land uses.
+    """
     newLand = copy.deepcopy(land)
     randomNumbers = []
-    # Generate the first number
     randomNumbers.append(random.uniform(0.1, 1.0))
-    # Generate the second number based on what's left
     remaining_allocation_after_first = 1 - randomNumbers[0]
     randomNumbers.append(random.uniform(0.01, remaining_allocation_after_first))
-    # The third number is what's left from 1 after subtracting the first two numbers
     randomNumbers.append(1 - randomNumbers[0] - randomNumbers[1])
     land_uses = ["Grain_Crop", "Cotton_Crop", "Metal_Mining"]
-    # Shuffle the list to randomize which land use gets which number
     random.shuffle(land_uses)
 
     for i, land_use in enumerate(land_uses):
         newLand[land_use] = randomNumbers[i]
-        
-
-    # print("TOTAL LAND ALOCATED", sum(randomNumbers))
-    
+            
     return newLand
+
+
 
 
 #can manipulate the wants of each person in the genome(their utility)
@@ -123,7 +132,7 @@ def basic_consumption(budget_data, producedGoods, marketPrice, population_size, 
             else:
                 utility_data[product]["utility"] += utility_data[product]["upWeighting"]
         
-    print("consumption: ", consumption_dict)
+    # print("consumption: ", consumption_dict)
     for item in consumption_dict:
         consumption_dict[item] *= population_size
         producedGoods[item] -= consumption_dict[item]
@@ -131,7 +140,7 @@ def basic_consumption(budget_data, producedGoods, marketPrice, population_size, 
         # budget = purchase(largest_product, budget, consumption_dict, marketPrice)
             
 
-    return producedGoods
+    return producedGoods, consumption_dict
 
 
 
@@ -166,7 +175,6 @@ def adjust_price_based_on_supply_demand(production_data, produce_dict):
             updated_price = details['price'] * price_adjustment_factor
             # Update the product's price in the production data
             updated_production_data[product]['price'] = updated_price
-            #print("new Prices:", updated_price)
     return updated_production_data
 
 def breed_parents(genome1, genome2):
@@ -191,20 +199,16 @@ def mutation(genome):
     randomMutate = random.randint(0, 100)
     if randomMutate >= 50:
         land_uses = ["Grain_Crop", "Cotton_Crop", "Metal_Mining"]
-        # print("mutated")   
         
         # Shuffle the list to randomize which land use gets which number
         random.shuffle(land_uses)
-        #print(land_uses[0])
 
         for i in range(len(land_uses)):
             amount = random.uniform(-genome[land_uses[i]], genome[land_uses[i]])
             genome[land_uses[i]] += amount
-        #print("initial amount: ", amount)
         
         genome = normalize(genome)
 
-        #print("Sum:", sum(genome.values()))
     return genome
 
     
@@ -216,137 +220,91 @@ def normalize(genome):
         for key in genome:
             # Normalize each value in the genome
             genome[key] = genome[key] / land_sum
-            #genome[key] = (genome[key] - min(genome.values())) / (max(genome.values()) - min(genome.values()))
 
-    print("GENOME:", genome)
     return genome
-        
-    
+
+def consumption_surplus(num_consumed, need, positive_weight, negative_weight):
+    surplus = num_consumed - need
+    if surplus >= 0:
+        return positive_weight * surplus
+    else:
+        return negative_weight * surplus
  
-def fitness(con_genome):
-    #how do we want to calculate the score?
-    #check the numbers for each key in disctionary.
-    
-    #positive production
-    #efficiency
-    #type of economy score
-    
-    totalScore = 0
-    wheat_score = 0
-    cloth_score = 0
-    tool_score = 0
-    positive_weight= 0.8
-    efficiency_weight=0.2
-    wheat_efficiency = starting_utilities['wheat'] # 8
-    cloth_efficiency = starting_utilities['cloth'] # 3
-    tool_efficiency = starting_utilities['tool']   # 1
-    # excess production over needs
-    # excess consumption over needs
-    #
+def fitness(con_genome, consume_dict):
 
+    k = 0.6 # higher = production weight, lower = consumption weighted
+    cs_pos_weight = 0.5
+    cs_neg_weight = 0.1
+    ps_pos_weight = 0.2
+    ps_neg_weight = 0.01
     
-    #posivie production:
+    total_fitness = 0
     for key in con_genome:
-        # This was one 'for' loop but then prof comlained
-        if key == "wheat":
-            wheat_score += con_genome[key] * wheat_efficiency * positive_weight
-            wheat_score +=  max(0, 100 - abs(con_genome[key])) * wheat_efficiency * efficiency_weight
-        elif key == "cloth":
-            print("Checking first cloth score", con_genome[key]  * cloth_efficiency * positive_weight)
-            cloth_score += con_genome[key]  * cloth_efficiency * positive_weight
-            print("checking cloth efficiency", max(0, 100 - abs(con_genome[key]))   * cloth_efficiency * efficiency_weight)
-            cloth_score +=  max(0, 100 - abs(con_genome[key]))   * cloth_efficiency * efficiency_weight
-        elif key == "tool":
-            tool_score += con_genome[key]  * tool_efficiency * positive_weight
-            tool_score +=  max(0, 100 - abs(con_genome[key])) * tool_efficiency * efficiency_weight
-        #efficiencyScore += max(0, 100 - abs(con_genome[key])) * f'{key}_efficiency'
+    
+        if con_genome[key] >= 0:
+            new_weight = ps_pos_weight
+        else:
+            new_weight = ps_neg_weight
+        fitness = k * (con_genome[key] + consume_dict[key]) + con_genome[key] * new_weight \
+            + (1-k) * (con_genome[key] + consume_dict[key]) + \
+                          consumption_surplus(consumption_dict[key], needs_data[key]["need"], cs_pos_weight, cs_neg_weight)
+        total_fitness += fitness
+   
+        
 
-    print("wheat_score: ", wheat_score, "cloth_score: ", cloth_score, "tool_score: ", tool_score)
-    totalScore = int((wheat_score + cloth_score + tool_score))
-    # print("score gotten from production:", positiveProductionScore * positive_production)
-    # print("score gotten from effeciency", (efficiencyScore * efficiency))
-    #totalScore = (positiveProductionScore * positive_production)
-    print("Score:",  totalScore)
-    return totalScore
+
+    return total_fitness
+
+
 
 
 def run_function(genome):
     
 
-    # print(genome)
-    # print(basic_production(genome, produce_data, production_data, land_size))
+    
     producedGoods = basic_production(genome, produce_data, production_data, land_size)
-    # print("produceGoods: ", producedGoods) #value
 
     newPrices = adjust_price_based_on_supply_demand(production_data, producedGoods)
-    # print("New Prices", newPrices)
-    consumption = basic_consumption(budget_data, producedGoods, newPrices, population, needs_data)
+    
+    consumption, consumption_dict = basic_consumption(budget_data, producedGoods, newPrices, population, needs_data)
     # print("consumption", consumption)
     
     # use this data to compare to the fitness
-    return consumption
+    return consumption, consumption_dict
 ###################################################################################################
 if __name__ == "__main__":
     genomes = {}
-    numOfParents = 20
+    numOfParents = 80
     generations = 15
     
     for i in range(numOfParents):
         genome = create_genome(land_data)
-        #print("genome:", genome)
-        #print("old sum:", sum(genome.values()))
         genome = mutation(genome)
-        #print("mutated:" , genome)
-        genome_consumption = run_function(genome)
-        #print("consumption: ", genome_consumption)
-        score = fitness(genome_consumption)
-        #print("score: ", score)
-        genomes[i] = ([genome, score, genome_consumption])
-        #print(genomes[i])
-        #run_function(genomes[i][genome])
-        #run (for scores)
-    #print(genomes)
-    #out of the parents, sort them and chose the best 2. Once we have lots of parents, sort in groups?
-    # sorted_genomes = sorted(genomes.items(), key=lambda item: item[1]['score'], reverse=True)
+        genome_consumption, consumption_dict = run_function(genome)
+        score = fitness(genome_consumption, consumption_dict)
+        genomes[i] = ([genome, score, genome_consumption, consumption_dict])
+        
+    #out of the parents, sort them and chose the best 2. Once we have lots of parents, sort in groups
     sorted_genomes = sorted(genomes.items(), key=lambda item: item[1][1], reverse=True)
-    #print("sorted genomes:",sorted_genomes)
     
     for i in range(generations):
         sorted_genomes = sorted(genomes.items(), key=lambda item: item[1][1], reverse=True)
         for j in range(0, len(sorted_genomes), 2):   
-            # print("J:", j)
-            # print(sorted_genomes[j][1][0])
             child = breed_parents(sorted_genomes[j][1][0],sorted_genomes[j+1][1][0])
-            child_genome = run_function(child)
+            child_genome, consumption_dict = run_function(child)
             
-            child_score = fitness(child_genome)
-            # UPDATE THIS SH*T it be same for both parent and child, or child is always lower
-            #check child and lower parent, and double check why the child is lower score
-            # print("Genomes - Parents1:", sorted_genomes[j][1][0],"Parents2", sorted_genomes[j+1][1][0], "Child:", child)
-            # print("Scores - Parent", genomes[j+1][1], "CHILD:", child_score)
+            child_score = fitness(child_genome, consumption_dict)
+            
             minScore = min(genomes[j+1][1],child_score)
             if(minScore == child_score):
-                #print("CHUILD MURDERER")
                 continue
             else:
-                #print("Get Rekt Parent")
-                genomes[j+1] = ([child, child_score, genome_consumption])
+                genomes[j+1] = ([child, child_score, genome_consumption, consumption_dict])
 
     final_genomes = sorted(genomes.items(), key=lambda item: item[1][1], reverse=True)
 
-
+    print()
     print("Best Genome land allocation:", final_genomes[0][1][0])
     print("It's score: ", final_genomes[0][1][1])
-    print("It's consumption: ", final_genomes[0][1][2])
-
-
-
-# land not used falor (allows for everything to add to 1)
-    # crossover for parents take one category from parent A and the the other 2 categories
-    # from parent 2 and then normalize the them in the child
-
-    # normalize the mutation function 
-    # another normalization softmax function
-    # add base biased to make thing positive then normalize
-
-# 
+    print("It's surplus: ", final_genomes[0][1][2])
+    print("It's consumption: ", final_genomes[0][1][3])
