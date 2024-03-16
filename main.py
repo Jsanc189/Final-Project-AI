@@ -6,9 +6,23 @@ import math
 
 #load the data
 def load_item_data(filename):
+    """
+    Function: load_item_data
+
+    Description:
+    Loads item data from a JSON file and returns it as a dictionary.
+
+    Parameters:
+    - filename: The name of the JSON file to load.
+
+    Returns:
+    - data: A dictionary containing the loaded item data.
+    """
     with open(filename, "r") as file:
         data = json.load(file)
     return data
+
+
 #globals variables
 neg_inf = float("-inf")
 data = load_item_data("data.json")
@@ -39,12 +53,7 @@ def randomize_land(land):
     Function: randomize_land
 
     Description:
-    This function takes a 'land' object as input and randomizes the allocation of resources across different land uses.
-    It uses deepcopy to create a new copy of the 'land' object to avoid modifying the original data.
-    Random numbers are generated within specified ranges to determine the allocation percentages for each land use.
-    The total allocation is ensured to add up to 1 by adjusting the remaining allocation after each random number generation.
-    The 'land_uses' list is shuffled to introduce randomness in the allocation process.
-    The function returns a new 'newLand' object with randomized allocations, leaving the original 'land' object unchanged.
+    Randomizes the allocation of resources across different land uses in the 'land' object.
 
     Parameters:
     - land: The original land object with initial allocation percentages for different land uses.
@@ -67,32 +76,49 @@ def randomize_land(land):
     return newLand
 
 
+def create_genome(land): 
+    """
+    Function: create_genome
 
+    Description:
+    Creates a genome based on the given 'land' allocation.
 
-#can manipulate the wants of each person in the genome(their utility)
-def create_genome(land): #item is data
+    Parameters:
+    - land: The original land object with initial allocation percentages for different land uses.
+
+    Returns:
+    - newGenome: A new genome object with randomized allocation percentages for different land uses.
+    """
+
     genome = {}
     genome = copy.deepcopy(land)
-    # randomize some items for later mutations using helper functions
     newGenome = randomize_land(genome)
     return newGenome
 
 
-# Your genome has to be constrained in some way.  
-# You can’t arbitrarily increase the quantity of arable land without losing something else. 
-# - Free to make it about land, minerals, crops, weather 
 
-#this should be which things I should make i.e. 2 things of cotton with 1 unit of land, or I can make 3 units of food with the same unit
 def basic_production(land, produce, production, size):
-    # For each land allocation, multiply the allocation by the size and then multiply
-    # the produce of that land allocation by its produce value
+    """
+    Function: basic_production
+
+    Description:
+    Performs basic production calculations based on land allocation, produce data, production data, and land size.
+
+    Parameters:
+    - land: The land object with allocation percentages for different land uses.
+    - produce: Dictionary containing produce data.
+    - production: Dictionary containing production data.
+    - size: The size of the land.
+
+    Returns:
+    - produce_dict: A dictionary containing the production values for different items.
+    """
     produce_dict = {}
     land_keys = ["Grain_Crop", "Cotton_Crop", "Metal_Mining"]
     produce_keys = ["Grain", "Cotton", "Metal"]
     production_keys = ["wheat", "cloth", "tool"]
     
     for item in range(len(produce_keys)):
-        # Calculate production value and update in the dictionary
         production_value = land[land_keys[item]] * produce[produce_keys[item]] * \
             production[production_keys[item]]["efficiency"] * size * 100
         produce_dict[production_keys[item]] = production_value
@@ -101,14 +127,30 @@ def basic_production(land, produce, production, size):
 
 
 def basic_consumption(budget_data, producedGoods, marketPrice, population_size, needs_data):
-    #we have a budget, price, and a need
-    #marginal utility
+    """
+    Function: basic_consumption
+
+    Description:
+    Calculates basic consumption based on budget, produced goods, market prices, population size, and needs data.
+
+    Parameters:
+    - budget_data: Budget information.
+    - producedGoods: Dictionary containing produced goods data.
+    - marketPrice: Dictionary containing market prices.
+    - population_size: Size of the population.
+    - needs_data: Dictionary containing needs data.
+
+    Returns:
+    - producedGoods: Updated produced goods data after consumption.
+    - consumption_dict: A dictionary containing consumption values for different items.
+    """
     consumption_dict = {"wheat": 0, "cloth": 0, "tool": 0}
     
     budget_keys = ["wheat", "cloth", "tool"]
     count = 0
     utility_data = copy.deepcopy(needs_data)
     budget = budget_data
+    
     while budget > 0 and count < 10:
         largest_utility = 0
         largest_product = ''
@@ -116,14 +158,11 @@ def basic_consumption(budget_data, producedGoods, marketPrice, population_size, 
             if largest_utility < utility_data[product]["utility"]:
                     largest_utility = utility_data[product]["utility"]
                     largest_product = product
-        count += 1
-        # updating budget and utilites
-        
+        count += 1        
     
         if(consumption_dict[largest_product] * 100 <= producedGoods[largest_product] and budget - marketPrice[largest_product]['price'] >=0):
-            # print("CAN BUY", )
             consumption_dict[largest_product] += 1
-            budget -= marketPrice[largest_product]['price'] # this will prob end up as a negative
+            budget -= marketPrice[largest_product]['price'] 
             count = 0
         
         for product in utility_data:
@@ -131,26 +170,21 @@ def basic_consumption(budget_data, producedGoods, marketPrice, population_size, 
                 utility_data[product]["utility"] -= utility_data[product]["downWeighting"]
             else:
                 utility_data[product]["utility"] += utility_data[product]["upWeighting"]
-        
-    # print("consumption: ", consumption_dict)
     for item in consumption_dict:
         consumption_dict[item] *= population_size
         producedGoods[item] -= consumption_dict[item]
-
-        # budget = purchase(largest_product, budget, consumption_dict, marketPrice)
-            
-
+                  
     return producedGoods, consumption_dict
 
 
 
 def adjust_price_based_on_supply_demand(production_data, produce_dict):
     """
-    Adjusts the price of products based on the difference between supply and demand.
+    Adjusts the prices of products based on their supply and demand.
 
     Parameters:
-    - production_data: Dictionary containing production information including demand.
-    - produce_dict: Dictionary containing the supply of each product.
+    - production_data: A dictionary containing information about the demand and price of each product.
+    - produce_dict: A dictionary containing the supply of each product.
 
     Returns:
     - Updated production data with adjusted prices.
@@ -178,6 +212,16 @@ def adjust_price_based_on_supply_demand(production_data, produce_dict):
     return updated_production_data
 
 def breed_parents(genome1, genome2):
+    """
+    Creates a new genome (child) by combining traits from two parent genomes.
+
+    Parameters:
+    - genome1: The first parent genome.
+    - genome2: The second parent genome.
+
+    Returns:
+    - A new child genome.
+    """
     parent1 = copy.deepcopy(genome1)
     parent2 = copy.deepcopy(genome2)
 
@@ -193,6 +237,15 @@ def breed_parents(genome1, genome2):
 
 
 def mutation(genome):
+    """
+    Randomly mutates a genome's land allocation.
+
+    Parameters:
+    - genome: The genome to be mutated.
+
+    Returns:
+    - The mutated genome.
+    """
     #get a high or low randomly
     #based on this, a high would add percentage to a random land allocation
     #redefine the other two land allocations to be less than 1
@@ -213,6 +266,15 @@ def mutation(genome):
 
     
 def normalize(genome):
+    """
+    Executes the basic simulation for a given genome.
+
+    Parameters:
+    - genome: The genome to simulate.
+
+    Returns:
+    - The remaining goods after consumption and the consumption data.
+    """
     land_sum = sum(genome.values())
     
     if land_sum > 1:
@@ -231,7 +293,16 @@ def consumption_surplus(num_consumed, need, positive_weight, negative_weight):
         return negative_weight * surplus
  
 def fitness(con_genome, consume_dict):
+    """
+    Calculates the fitness score for a genome based on its consumption and production.
 
+    Parameters:
+    - con_genome: The genome's contribution towards production.
+    - consume_dict: The genome's contribution towards consumption.
+
+    Returns:
+    - The fitness score.
+    """
     k = 0.6 # higher = production weight, lower = consumption weighted
     cs_pos_weight = 0.5
     cs_neg_weight = 0.1
@@ -255,24 +326,27 @@ def fitness(con_genome, consume_dict):
 
     return total_fitness
 
-
-
-
 def run_function(genome):
-    
+    """
+    Executes the basic simulation for a given genome.
 
-    
+    Parameters:
+    - genome: The genome to simulate.
+
+    Returns:
+    - The remaining goods after consumption and the consumption data.
+    """
     producedGoods = basic_production(genome, produce_data, production_data, land_size)
 
     newPrices = adjust_price_based_on_supply_demand(production_data, producedGoods)
     
     consumption, consumption_dict = basic_consumption(budget_data, producedGoods, newPrices, population, needs_data)
-    # print("consumption", consumption)
     
     # use this data to compare to the fitness
     return consumption, consumption_dict
 ###################################################################################################
 if __name__ == "__main__":
+    
     genomes = {}
     numOfParents = 80
     generations = 15
