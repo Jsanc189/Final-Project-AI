@@ -51,7 +51,7 @@
                 "upWeighting": 2
             },
             "tool": {
-                "need": 10,
+                "need": 1,
                 "utility": 1,
                 "downWeighting": 3,
                 "upWeighting": 1
