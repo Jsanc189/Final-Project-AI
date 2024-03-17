@@ -349,7 +349,7 @@ if __name__ == "__main__":
     
     genomes = {}
     numOfParents = 80
-    generations = 15
+    generations = 20
     
     for i in range(numOfParents):
         genome = create_genome(land_data)
